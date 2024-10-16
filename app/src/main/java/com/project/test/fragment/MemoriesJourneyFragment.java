@@ -100,6 +100,7 @@ public class MemoriesJourneyFragment extends Fragment implements OnMapReadyCallb
                 tags.get(position).setCheck(check);
                 tagAdapter.setTagMems(tags);
                 updateTagsOrderInFirestore();
+                updateMapMarkers();
             },
             getContext()
         );
@@ -141,13 +142,6 @@ public class MemoriesJourneyFragment extends Fragment implements OnMapReadyCallb
             });
         }
 
-
-        // Thêm swipe để xóa tag
-//        addSwipeToDelete(locationsRecyclerView);
-
-        // Thêm kéo thả để thay đổi thứ tự tag
-//        addDragAndDrop(locationsRecyclerView);
-
         // Thiết lập map
         setUpMapFragment();
 
@@ -160,7 +154,6 @@ public class MemoriesJourneyFragment extends Fragment implements OnMapReadyCallb
         LatLng initialPosition = new LatLng(21.0285, 105.8542); // Hà Nội
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(initialPosition, 10));
         updateMapMarkers();
-//        googleMap.setOnMapClickListener(this::onMapClick);
     }
 
     private void setUpMapFragment() {
@@ -169,13 +162,6 @@ public class MemoriesJourneyFragment extends Fragment implements OnMapReadyCallb
             mapFragment.getMapAsync(this::onMapReady);
         }
     }
-
-//    private void onMapClick(LatLng latLng) {
-//        if (isPointInMapBounds(latLng)) {
-//            TagMemory newTag = new TagMemory(UUID.randomUUID().toString(), "Unnamed Location", latLng.latitude, latLng.longitude, 0);
-//            onTagClick(newTag);
-//        }
-//    }
 
     private void updateSpinner(List<Memory> memories) {
         List<String> memoryNames = new ArrayList<>();
@@ -207,7 +193,6 @@ public class MemoriesJourneyFragment extends Fragment implements OnMapReadyCallb
         tags.clear();
         tags.addAll(updatedTags);
         tagAdapter.setTagMems(tags);
-        tagAdapter.notifyDataSetChanged();
         updateMapMarkers();
     }
 
@@ -224,74 +209,6 @@ public class MemoriesJourneyFragment extends Fragment implements OnMapReadyCallb
                 Toast.makeText(getContext(), "Error fetching tags: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
-    }
-
-    private void onTagClick(TagMemory tag) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder.setTitle("Enter the name for the location");
-
-        final EditText input = new EditText(getContext());
-        builder.setView(input);
-
-        builder.setPositiveButton("Add", (dialog, which) -> {
-            String tagName = input.getText().toString();
-            if (!tagName.isEmpty()) {
-                tag.setTagName(tagName);
-                tags.add(tag);
-                updateMapMarkers();
-                tagAdapter.setTagMems(tags); // Cập nhật danh sách tag
-            } else {
-                Toast.makeText(getContext(), "The location name can't be empty", Toast.LENGTH_SHORT).show();
-            }
-        });
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-        builder.show();
-    }
-
-    private void addDragAndDrop(RecyclerView recyclerView) {
-        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) {
-            @Override
-            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
-                Log.d(TAG, "onMove: from " + viewHolder.getAdapterPosition() + " to " + target.getAdapterPosition());
-                int fromPosition = viewHolder.getAdapterPosition();
-                int toPosition = target.getAdapterPosition();
-//                tagAdapter.(fromPosition, toPosition); //TODO: Implement later
-                updateTagsOrderInFirestore();
-                return true;
-            }
-
-            @Override
-            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                // Không cần xử lý khi bị vuốt
-            }
-        });
-
-        itemTouchHelper.attachToRecyclerView(recyclerView);
-    }
-
-    private void addSwipeToDelete(RecyclerView recyclerView) {
-        ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
-            @Override
-            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
-                return false;
-            }
-
-            @Override
-            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                if (direction == ItemTouchHelper.LEFT) {
-                    int position = viewHolder.getAdapterPosition();
-                    TagMemory tagToDelete = tagAdapter.getTagAtPosition(position);
-                    tags.remove(position);
-                    tagAdapter.setTagMems(tags);
-                    memoryRepo.removeTag(memoryId, tagToDelete);
-                    updateMapMarkers();
-                    Toast.makeText(getContext(), "Tag deleted", Toast.LENGTH_SHORT).show();
-                }
-            }
-        };
-
-        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleItemTouchCallback);
-        itemTouchHelper.attachToRecyclerView(recyclerView);
     }
 
     private void updateTagsOrderInFirestore() {
@@ -404,6 +321,7 @@ public class MemoriesJourneyFragment extends Fragment implements OnMapReadyCallb
                             tags.get(positionUploadImage).setImage(downloadUrl);
                             tagAdapter.setTagMems(tags);
                             updateTagsOrderInFirestore();
+                            updateMapMarkers();
                         });
                     })
                     .addOnFailureListener(e -> {
@@ -413,56 +331,6 @@ public class MemoriesJourneyFragment extends Fragment implements OnMapReadyCallb
         } else {
             Toast.makeText(getContext(), "No image selected", Toast.LENGTH_SHORT).show();
         }
-    }
-
-    private void drawContinuousLine(List<Tag> tags) {
-        List<LatLng> markerPositions = new ArrayList<>();
-        // Clear any previous markers and polyline
-        googleMap.clear();
-        markerPositions.clear();  // Clear the positions for the new drawing
-
-        // Initialize a PolylineOptions object to hold the points for the polyline
-        PolylineOptions polylineOptions = new PolylineOptions()
-                .clickable(true)          // Make the polyline clickable (if desired)
-                .color(Color.BLUE)        // Set color for the polyline
-                .width(5);                // Set width for the polyline
-
-        // Loop through the list of tags to get their positions in order
-        for (Tag tag : tags) {
-            LatLng position = new LatLng(tag.getLatitude(), tag.getLongitude());
-
-            // Add the position to the markerPositions list
-            markerPositions.add(position);
-
-            // Create a custom marker (optional)
-            CustomMarker customMarker = new CustomMarker(position, tag.getTagName(), "Some info here");
-
-            // Add the marker to the map
-            googleMap.addMarker(new MarkerOptions().position(position).title(customMarker.getTitle()));
-
-            // Add the position to the polyline options to draw the line
-            polylineOptions.add(position);
-        }
-
-        // Check if we have at least 2 positions to draw a polyline
-        if (markerPositions.size() > 1) {
-            // Add the polyline to the map
-            googleMap.addPolyline(polylineOptions);
-        }
-
-        // Move camera to the first marker position (optional)
-        if (!markerPositions.isEmpty()) {
-            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(markerPositions.get(0), 10));
-        }
-    }
-
-
-    private boolean isPointInMapBounds(LatLng latLng) {
-        LatLng southwest = googleMap.getProjection().getVisibleRegion().latLngBounds.southwest;
-        LatLng northeast = googleMap.getProjection().getVisibleRegion().latLngBounds.northeast;
-
-        return latLng.latitude >= southwest.latitude && latLng.latitude <= northeast.latitude
-                && latLng.longitude >= southwest.longitude && latLng.longitude <= northeast.longitude;
     }
 
     @Override

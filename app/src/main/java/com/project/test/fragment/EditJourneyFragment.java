@@ -132,7 +132,6 @@ public class EditJourneyFragment extends Fragment implements OnMapReadyCallback 
             });
         }
 
-
         // Thêm swipe để xóa tag
         addSwipeToDelete(locationsRecyclerView);
 
@@ -199,8 +198,7 @@ public class EditJourneyFragment extends Fragment implements OnMapReadyCallback 
 
     private void updateRecyclerView(List<Tag> updatedTags) {
         Log.d("EditJourneyFragment.updateRecyclerView", "updatedTags: " + new Gson().toJson(updatedTags));
-        tags.clear();
-        tags.addAll(updatedTags);
+        tags = updatedTags;
         tagAdapter.setTags(tags);
         tagAdapter.notifyDataSetChanged();
         updateMapMarkers();
@@ -252,6 +250,7 @@ public class EditJourneyFragment extends Fragment implements OnMapReadyCallback 
                 int toPosition = target.getAdapterPosition();
                 tagAdapter.moveTag(fromPosition, toPosition);
                 updateTagsOrderInFirestore();
+                updateMapMarkers();
                 return true;
             }
 
@@ -324,49 +323,6 @@ public class EditJourneyFragment extends Fragment implements OnMapReadyCallback 
         }
     }
 
-
-    private void drawContinuousLine(List<Tag> tags) {
-        List<LatLng> markerPositions = new ArrayList<>();
-        // Clear any previous markers and polyline
-        googleMap.clear();
-        markerPositions.clear();  // Clear the positions for the new drawing
-
-        // Initialize a PolylineOptions object to hold the points for the polyline
-        PolylineOptions polylineOptions = new PolylineOptions()
-                .clickable(true)          // Make the polyline clickable (if desired)
-                .color(Color.BLUE)        // Set color for the polyline
-                .width(5);                // Set width for the polyline
-
-        // Loop through the list of tags to get their positions in order
-        for (Tag tag : tags) {
-            LatLng position = new LatLng(tag.getLatitude(), tag.getLongitude());
-
-            // Add the position to the markerPositions list
-            markerPositions.add(position);
-
-            // Create a custom marker (optional)
-            CustomMarker customMarker = new CustomMarker(position, tag.getTagName(), "Some info here");
-
-            // Add the marker to the map
-            googleMap.addMarker(new MarkerOptions().position(position).title(customMarker.getTitle()));
-
-            // Add the position to the polyline options to draw the line
-            polylineOptions.add(position);
-        }
-
-        // Check if we have at least 2 positions to draw a polyline
-        if (markerPositions.size() > 1) {
-            // Add the polyline to the map
-            googleMap.addPolyline(polylineOptions);
-        }
-
-        // Move camera to the first marker position (optional)
-        if (!markerPositions.isEmpty()) {
-            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(markerPositions.get(0), 10));
-        }
-    }
-
-
     private boolean isPointInMapBounds(LatLng latLng) {
         LatLng southwest = googleMap.getProjection().getVisibleRegion().latLngBounds.southwest;
         LatLng northeast = googleMap.getProjection().getVisibleRegion().latLngBounds.northeast;
@@ -379,8 +335,8 @@ public class EditJourneyFragment extends Fragment implements OnMapReadyCallback 
         SearchFragment searchFragment = new SearchFragment();
         searchFragment.setTagSelectedListener(tag -> {
             tags.add(tag);
-            updateMapMarkers();
             updateRecyclerView(tags);
+            updateTagsOrderInFirestore();
             Log.d(TAG, "Tag added from SearchFragment: " + tag.getTagName());
         });
         FragmentTransaction transaction = getChildFragmentManager().beginTransaction();
