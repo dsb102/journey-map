@@ -1,0 +1,43 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <Button
+        android:id="@+id/btn_choose_image"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Choose Image"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"/>
+
+    <TextView
+        android:id="@+id/tv_result"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Detected Class will appear here"
+        android:textSize="18sp"
+        android:textColor="@android:color/black"
+        android:layout_below="@id/btn_choose_image"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="16dp"/>
+
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone"/>
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_nav_menu"
+        android:layout_width="match_parent"
+        android:layout_height="65dp"
+        android:layout_alignParentBottom="true"
+        android:background="@color/colorPrimaryDark"
+        app:itemIconSize="30dp"
+        app:itemIconTint="@drawable/item_selector"
+        app:labelVisibilityMode="labeled"
+        app:menu="@menu/bottom_nav_menu" />
+
+</RelativeLayout>

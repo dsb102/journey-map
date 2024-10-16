@@ -56,6 +56,12 @@
             android:name=".ImageSearchActivity"
             android:exported="true">
         </activity>
+        <activity android:name=".IMGActivity"
+            android:exported="true">
+        </activity>
+            <activity android:name=".ImageSearchActivity"
+                android:exported="true">
+            </activity>
     </application>
 
 </manifest>
