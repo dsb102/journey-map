@@ -35,7 +35,7 @@ public class IMGActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_img);
+        setContentView(R.layout.activity_maps);
 
         tvResult = findViewById(R.id.tv_result);
         progressBar = findViewById(R.id.progress_bar);

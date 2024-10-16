@@ -1,5 +1,7 @@
 package com.project.test;
 
+import static android.content.ContentValues.TAG;
+
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Intent;
@@ -33,6 +35,11 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.api.net.FetchPlaceRequest;
+import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest;
+import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.firestore.GeoPoint;
@@ -44,6 +51,7 @@ import com.project.test.repository.TagRepository;
 import com.project.test.repository.UserRepository;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,12 +68,23 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private final TagRepository tagRepo = new TagRepository();
     private boolean saveCurrentMarker = false;
     private final List<MarkerOptions> makerOptions = new ArrayList<>();
+    private PlacesClient placesClient;
+    private String detectedClass;
+
 
     @SuppressLint("NonConstantResourceId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+        // Retrieve the detected class from the intent
+        detectedClass = getIntent().getStringExtra("DETECTED_CLASS");
+
+        // Initialize the Places API
+        Places.initialize(getApplicationContext(), "AIzaSyBZvoWYwyeOmhAjoX5xuXcas6RIL79dbJQ");
+        placesClient = Places.createClient(this);
+
+
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav_menu);
         bottomNav.setOnNavigationItemSelectedListener(navListener);
@@ -135,6 +154,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        searchForPlaces(detectedClass);
 
         // Set the custom info window adapter
         mMap.setInfoWindowAdapter(new CustomInfoWindowAdapter(getLayoutInflater(), markers));
@@ -166,6 +186,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
     }
+
 
     private void updateMarkers() {
         mMap.clear();
@@ -371,5 +392,33 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 });
         }
     }
+    private void searchForPlaces(String query) {
+        FindAutocompletePredictionsRequest request = FindAutocompletePredictionsRequest.builder()
+                .setQuery(query) // Use the detected class as the query
+                .build();
 
+        placesClient.findAutocompletePredictions(request).addOnSuccessListener(response -> {
+            for (int i = 0; i < response.getAutocompletePredictions().size(); i++) {
+                // Get the place ID of the first few predictions
+                String placeId = response.getAutocompletePredictions().get(i).getPlaceId();
+
+                // Fetch detailed information about the place
+                List<Place.Field> placeFields = Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG);
+                FetchPlaceRequest fetchPlaceRequest = FetchPlaceRequest.builder(placeId, placeFields).build();
+
+                placesClient.fetchPlace(fetchPlaceRequest).addOnSuccessListener(fetchPlaceResponse -> {
+                    Place place = fetchPlaceResponse.getPlace();
+                    Log.i(TAG, "Place found: " + place.getName());
+
+                    // Add marker for each place found
+                    LatLng placeLatLng = place.getLatLng();
+                    if (placeLatLng != null) {
+                        mMap.addMarker(new MarkerOptions().position(placeLatLng).title(place.getName()));
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(placeLatLng, 12)); // Adjust zoom level as needed
+                    }
+                }).addOnFailureListener(e -> Log.e(TAG, "Place not found: " + e.getMessage()));
+            }
+        }).addOnFailureListener(e -> Log.e(TAG, "Autocomplete predictions failed: " + e.getMessage()));
+    }
 }
+
