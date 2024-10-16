@@ -14,7 +14,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.project.test.R;
-import com.project.test.fragment.MemoriesJourneyFragment;
 import com.project.test.model.TagMemory;
 
 import java.util.List;
@@ -31,6 +30,8 @@ public class TagMemoryAdapter extends RecyclerView.Adapter<TagMemoryAdapter.TagM
 
     private TagMemoryAdapter.ClickCheckBox clickCheckBox;
 
+    private AddNoteClick addNoteClick;
+
 
     public interface OnTagClickListener {
         void onTagClick(TagMemory tag);
@@ -44,14 +45,19 @@ public class TagMemoryAdapter extends RecyclerView.Adapter<TagMemoryAdapter.TagM
         void onClickCheckBox(boolean check, int position);
     }
 
+    public interface AddNoteClick {
+        void onClickAddNote(int position);
+    }
+
     public TagMemoryAdapter() {
     }
 
-    public void setTagMems(List<TagMemory> tagMems, TagMemoryAdapter.OnTagClickListener listener, TagMemoryAdapter.OnClickButton onClickButton, TagMemoryAdapter.ClickCheckBox onClickCheckBox,  Context context) {
+    public void setTagMems(List<TagMemory> tagMems, TagMemoryAdapter.OnTagClickListener listener, TagMemoryAdapter.OnClickButton onClickButton, TagMemoryAdapter.ClickCheckBox onClickCheckBox, AddNoteClick addNoteClick, Context context) {
         this.tagMems = tagMems;
         this.listener = listener;
         this.onClickButton = onClickButton;
         this.clickCheckBox = onClickCheckBox;
+        this.addNoteClick = addNoteClick;
         this.context = context;
         notifyDataSetChanged();
     }
@@ -81,6 +87,7 @@ public class TagMemoryAdapter extends RecyclerView.Adapter<TagMemoryAdapter.TagM
         TagMemory tag = tagMems.get(position);
         if (tag == null) return;
         holder.bind(tag);
+
 //        holder.itemView.setOnClickListener(v -> listener.onTagClick(tag));
     }
 
@@ -96,6 +103,7 @@ public class TagMemoryAdapter extends RecyclerView.Adapter<TagMemoryAdapter.TagM
 
     class TagMemViewHolder extends RecyclerView.ViewHolder {
         private final TextView tagName;
+        private final Button addNote;
         private final ImageView tagImage;
         private final Button button;
         private final CheckBox checkBox;
@@ -103,6 +111,7 @@ public class TagMemoryAdapter extends RecyclerView.Adapter<TagMemoryAdapter.TagM
 
         public TagMemViewHolder(@NonNull View itemView, TagMemoryAdapter.OnTagClickListener listener) { // Thêm listener vào constructor
             super(itemView);
+            this.addNote = itemView.findViewById(R.id.addNote);
             this.listener = listener; // Gán listener cho biến instance
             this.tagImage = itemView.findViewById(R.id.image);
             this.button = itemView.findViewById(R.id.button);
@@ -117,6 +126,9 @@ public class TagMemoryAdapter extends RecyclerView.Adapter<TagMemoryAdapter.TagM
                         .load(tag.getImage())
                         .into(tagImage);
             }
+            addNote.setOnClickListener(v -> {
+                addNoteClick.onClickAddNote(getAdapterPosition());
+            });
             checkBox.setChecked(tag.isCheck());
             button.setOnClickListener(v -> {
                 // Gọi phương thức openImageChooser để chọn ảnh
@@ -125,7 +137,6 @@ public class TagMemoryAdapter extends RecyclerView.Adapter<TagMemoryAdapter.TagM
             checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 clickCheckBox.onClickCheckBox(isChecked, getAdapterPosition());
             });
-//            itemView.setOnClickListener(v -> listener.onTagClick(tag)); // Sử dụng listener
         }
 
         public void moveTag(int fromPosition, int toPosition) {

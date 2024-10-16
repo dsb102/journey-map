@@ -2,12 +2,14 @@ package com.project.test.fragment;
 
 import static android.app.Activity.RESULT_OK;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -47,6 +49,7 @@ import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
 import com.project.test.R;
 import com.project.test.SignUpActivity;
+import com.project.test.adapter.CustomInfoWindowMemoryAdapter;
 import com.project.test.adapter.TagMemoryAdapter;
 import com.project.test.entity.CustomMarker;
 import com.project.test.model.Journey;
@@ -102,6 +105,7 @@ public class MemoriesJourneyFragment extends Fragment implements OnMapReadyCallb
                 updateTagsOrderInFirestore();
                 updateMapMarkers();
             },
+                this::showInputAlert,
             getContext()
         );
 
@@ -148,9 +152,53 @@ public class MemoriesJourneyFragment extends Fragment implements OnMapReadyCallb
         return view;
     }
 
+    public void showInputAlert(int position) {
+        final EditText input = new EditText(getContext());
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Input note");
+
+        builder.setView(input);
+
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String userInput = input.getText().toString();
+                if (!userInput.isEmpty()) {
+                    // Thực hiện hành động lưu với text nhập vào
+                    saveNote(userInput, position);
+                } else {
+                    // Xử lý nếu người dùng không nhập gì
+                    Toast.makeText(getContext(), "Vui lòng nhập dữ liệu", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        // Nút Cancel nếu người dùng muốn hủy bỏ
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel(); // Hủy bỏ dialog
+            }
+        });
+
+        // Hiển thị dialog
+        builder.show();
+    }
+
+    private void saveNote(String userInput, int position) {
+        tags.get(position).setNote(userInput);
+        tagAdapter.setTagMems(tags);
+        updateTagsOrderInFirestore();
+        updateMapMarkers();
+    }
+
+
     @Override
     public void onMapReady(GoogleMap map) {
         googleMap = map;
+        googleMap.setInfoWindowAdapter(new CustomInfoWindowMemoryAdapter(getLayoutInflater(), tags));
         LatLng initialPosition = new LatLng(21.0285, 105.8542); // Hà Nội
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(initialPosition, 10));
         updateMapMarkers();
@@ -234,6 +282,7 @@ public class MemoriesJourneyFragment extends Fragment implements OnMapReadyCallb
                         .position(position)
                         .title(tag.getTagName());
 
+
                 // Nếu tag có hình ảnh, sử dụng Glide để tải hình ảnh và gán cho marker
                 if (tag.getImage() != null && !tag.getImage().isEmpty()) {
                     Glide.with(this)
@@ -244,16 +293,16 @@ public class MemoriesJourneyFragment extends Fragment implements OnMapReadyCallb
                                 @Override
                                 public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
                                     markerOptions.icon(BitmapDescriptorFactory.fromBitmap(resource));
-                                    googleMap.addMarker(markerOptions);
+                                    googleMap.addMarker(markerOptions).showInfoWindow();;
                                 }
 
                                 @Override
                                 public void onLoadCleared(@Nullable Drawable placeholder) {
-                                    googleMap.addMarker(markerOptions); // Nếu không tải được ảnh
+                                    googleMap.addMarker(markerOptions).showInfoWindow();; // Nếu không tải được ảnh
                                 }
                             });
                 } else {
-                    googleMap.addMarker(markerOptions); // Nếu không có hình ảnh, chỉ thêm marker
+                    googleMap.addMarker(markerOptions).showInfoWindow(); // Nếu không có hình ảnh, chỉ thêm marker
                 }
 
                 // Nếu đã có điểm trước đó, vẽ polyline từ previousPosition đến position
@@ -261,7 +310,6 @@ public class MemoriesJourneyFragment extends Fragment implements OnMapReadyCallb
                     PolylineOptions polylineOptions = new PolylineOptions()
                             .add(previousPosition)  // Điểm đầu
                             .add(position)          // Điểm cuối
-
                             // Kiểm tra điều kiện `isCheck` của điểm hiện tại để quyết định màu sắc
                             .color(tag.isCheck() ? Color.BLUE : Color.BLACK)
                             .width(tag.isCheck() ? 10 : 5); // Độ dày: true là 10, false là 5
