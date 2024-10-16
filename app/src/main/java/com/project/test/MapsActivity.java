@@ -14,6 +14,7 @@ import android.widget.Toast;
 import android.Manifest;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -32,23 +33,29 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.firestore.GeoPoint;
 import com.google.gson.Gson;
 import com.project.test.adapter.CustomInfoWindowAdapter;
 import com.project.test.entity.CustomMarker;
 import com.project.test.model.Tag;
+import com.project.test.repository.TagRepository;
 import com.project.test.repository.UserRepository;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
 
+    private static final String HARD_CODED_USER_ID = "dungsobin103";
     private GoogleMap mMap;
     private List<CustomMarker> markers = new ArrayList<>();
     private static final int PICK_IMAGE_REQUEST = 1; // Request code for picking an image
     private Marker currentMarker;
     private List<LatLng> markerPositions = new ArrayList<>();
     private UserRepository userRepo = new UserRepository();
+    private TagRepository tagRepo = new TagRepository();
 
     @SuppressLint("NonConstantResourceId")
     @Override
@@ -161,12 +168,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.setInfoWindowAdapter(new CustomInfoWindowAdapter(getLayoutInflater(), markers));
 
         mMap.getUiSettings().setZoomControlsEnabled(true);
-        // Example of adding a marker for demonstration
-//        LatLng hanoi = new LatLng(21.0285, 105.8542);
-//        CustomMarker customMarker = new CustomMarker(hanoi, "Marker in Hanoi", "Some info about Hanoi");
-//        markers.add(customMarker);
-//        mMap.addMarker(new MarkerOptions().position(hanoi).title(customMarker.getTitle()));
-//        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(hanoi, 10));
 
 
         // Kiểm tra quyền truy cập vị trí và lấy vị trí hiện tại
@@ -174,39 +175,127 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         getCurrentLocation(); // lay vi tri hien tai hien thi
         loadLocationFriends(); // load vi tri ban be
+        
+//        loadLocationTaged();
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(@NonNull LatLng latLng) {
-//                Dialog dialog = new Dialog(MapsActivity.this);
-//                dialog.setContentView(R.layout.dialog_add_location);
-//                dialog.setCancelable(true);
-//
-//                // Get references to the dialog's views
-//                EditText editTextLocationName = dialog.findViewById(R.id.editTextLocationName);
-//                EditText editTextLocationInfo = dialog.findViewById(R.id.editTextLocationInfo);
-//                Button buttonAddLocation = dialog.findViewById(R.id.buttonAddLocation);
-//
-//                buttonAddLocation.setOnClickListener(new View.OnClickListener() {
-//                    @Override
-//                    public void onClick(View v) {
-//                        String locationName = editTextLocationName.getText().toString();
-//                        String locationInfo = editTextLocationInfo.getText().toString();
-//                        CustomMarker customMarker = new CustomMarker(latLng, locationName, locationInfo);
-//                        markers.add(customMarker);
-//
-//                        // Add marker to the map
-//                        mMap.addMarker(new MarkerOptions().position(latLng).title(locationName));
-//                        mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
-//                        dialog.dismiss();
-//                    }
-//                });
-//
-//                dialog.show();
-
-
-                drawLine(latLng);
+                showAddTagDialog(latLng);
+//                drawLine(latLng);
             }
         });
+    }
+
+//    private void loadLocationTaged() {
+//        tagRepo.getTags(
+//                "dungsobin103",
+//                userLocations -> {
+//                    Log.d("MapsActivity", "User locations: " + new Gson().toJson(userLocations));
+//                    for (int i = 0; i < userLocations.size(); i++) {
+//                        CustomMarker customMarker = new CustomMarker(
+//                                new LatLng(userLocations.get(i).getLatitude(), userLocations.get(i).getLongitude()),
+//                                userLocations.get(i).getName(),
+//                                userLocations.get(i).getName() + " is here"
+//                        );
+//                        markers.add(customMarker);
+//                        mMap.addMarker(new MarkerOptions().position(customMarker.getPosition()).title(customMarker.getTitle()));
+//
+//                    }
+//
+//                    //TODO: Move camera to show all markers
+////                LatLngBounds.Builder builder = new LatLngBounds.Builder();
+////                for (CustomMarker mark : markers) {
+////                    builder.include(mark.getPosition());
+////                }
+////                LatLngBounds bounds = builder.build();
+////                mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 10));
+//                }
+//        ); // todo fix name
+//    }
+
+    private void showAddTagDialog(LatLng markerPosition) {
+        // Create an AlertDialog builder
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+        // Inflate the custom layout for the dialog
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_tag, null);
+
+        // InitiuserRepo.getLocationUsers(
+        //        "dungsobin103",
+        //            userLocations -> {
+        //                Log.d("MapsActivity", "User locations: " + new Gson().toJson(userLocations));
+        //                for (int i = 0; i < userLocations.size(); i++) {
+        //                    CustomMarker customMarker = new CustomMarker(
+        //                        new LatLng(userLocations.get(i).getLatitude(), userLocations.get(i).getLongitude()),
+        //                        userLocations.get(i).getName(),
+        //                        userLocations.get(i).getName() + " is here"
+        //                    );
+        //                    markers.add(customMarker);
+        //                    mMap.addMarker(new MarkerOptions().position(customMarker.getPosition()).title(customMarker.getTitle()));
+        //
+        //                }
+        //
+        //                //TODO: Move camera to show all markers
+        ////                LatLngBounds.Builder builder = new LatLngBounds.Builder();
+        ////                for (CustomMarker mark : markers) {
+        ////                    builder.include(mark.getPosition());
+        ////                }
+        ////                LatLngBounds bounds = builder.build();
+        ////                mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 10));
+        //            }
+        //        ); // todo fix namealize EditText and Button views from the layout
+        EditText tagNameInput = dialogView.findViewById(R.id.editTextTagName);
+        EditText tagNotesInput = dialogView.findViewById(R.id.editTextNotes);
+        EditText tagColorInput = dialogView.findViewById(R.id.editTextColor);
+        Button saveTagButton = dialogView.findViewById(R.id.buttonSaveTag);
+        Button cancelTagButton = dialogView.findViewById(R.id.buttonCancel);
+
+        // Create the AlertDialog and set the custom view
+        AlertDialog dialog = builder.setView(dialogView).create();
+
+        // Handle Save button click
+        saveTagButton.setOnClickListener(v -> {
+            // Get the input values from the EditText fields
+            String tagName = tagNameInput.getText().toString();
+            String tagNotes = tagNotesInput.getText().toString();
+            String tagColor = tagColorInput.getText().toString();
+
+            // Check if the inputs are valid (you can add your own validation)
+            if (!tagName.isEmpty() && !tagColor.isEmpty()) {
+                Map<String, Object> tagData = new HashMap<>();
+                tagData.put("tagName", tagName);
+                tagData.put("tagNotes", tagNotes);
+                tagData.put("tagColor", tagColor);
+                tagData.put("position", new GeoPoint(markerPosition.latitude, markerPosition.longitude));
+                tagData.put("createdBy", HARD_CODED_USER_ID); // Use hardcoded user ID
+                tagRepo.saveTag(tagData, new TagRepository.OnTagSavedListener() {
+                    @Override
+                    public void onSuccess() {
+                        Toast.makeText(getApplicationContext(), "Tag saved", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        Toast.makeText(getApplicationContext(), "Tag saved error " + message, Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+                // Dismiss the dialog after saving the tag
+                dialog.dismiss();
+            } else {
+                // Show a message to the user if fields are invalid
+                Toast.makeText(this, "Tag name and color cannot be empty", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        // Handle Cancel button click
+        cancelTagButton.setOnClickListener(v -> {
+            // Dismiss the dialog without saving anything
+            dialog.dismiss();
+        });
+
+        // Show the dialog
+        dialog.show();
     }
 
     private void updateViTriCuaMinh(LatLng latLng) {

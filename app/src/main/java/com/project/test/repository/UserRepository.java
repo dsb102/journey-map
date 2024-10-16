@@ -43,9 +43,7 @@ public class UserRepository {
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null) {
                         Map<String, Object> mapUser  = task.getResult().getData();
-                        Log.d("getLocationUsers", new Gson().toJson(mapUser));
                         List<String> friendNames = (List<String>) mapUser.get("friends");
-                        Log.d("getLocationUsers", "friendNames: " + new Gson().toJson(friendNames));
                         if (friendNames == null || friendNames.isEmpty()) {
                             listener.onCallback(userLocations);
                             return;
