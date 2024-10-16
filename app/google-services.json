@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "96283240978",
+    "firebase_url": "https://memap-a907d-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "memap-a907d",
+    "storage_bucket": "memap-a907d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:96283240978:android:cc42fa3cdb08ffce9e06cb",
+        "android_client_info": {
+          "package_name": "com.project.memap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARAn_dQwAuwqq_8o7H-N6YivDHzAtL614"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:96283240978:android:e1d03a48787ecba79e06cb",
+        "android_client_info": {
+          "package_name": "com.project.test"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARAn_dQwAuwqq_8o7H-N6YivDHzAtL614"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
