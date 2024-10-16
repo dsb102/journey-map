@@ -42,8 +42,10 @@ public class JourneyButtonFragment extends Fragment implements OnMapReadyCallbac
                 loadFragment(new EditJourneyFragment());
             }
         );
-        memoriesButton.setOnClickListener(v ->
-                Toast.makeText(getContext(), "Tính năng Kỷ niệm sắp có!", Toast.LENGTH_SHORT).show()
+        memoriesButton.setOnClickListener(v -> {
+//                    Toast.makeText(getContext(), "Tính năng Kỷ niệm sắp có!", Toast.LENGTH_SHORT).show();
+                    loadFragment(new MemoriesJourneyFragment());
+                }
         );
 
         // Khởi tạo SupportMapFragment

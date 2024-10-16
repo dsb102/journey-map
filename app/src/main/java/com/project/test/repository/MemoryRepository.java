@@ -2,33 +2,32 @@ package com.project.test.repository;
 
 import android.util.Log;
 
-import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.gson.Gson;
-import com.project.test.model.Journey;
+import com.project.test.model.Memory;
 import com.project.test.model.Tag;
+import com.project.test.model.TagMemory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-public class JourneyRepository {
+public class MemoryRepository {
 
     private final FirebaseFirestore db;
 
-    public JourneyRepository() {
-        this.db = FirebaseFirestore.getInstance();;
+    public MemoryRepository() {
+        this.db = FirebaseFirestore.getInstance();
     }
 
-    public void fetchJourneys(String userId, OnJourneyFetchListener listener) {
-        db.collection("journeys")
+    public void fetchMemories(String userId, MemoryRepository.OnMemoryFetchListener listener) {
+        db.collection("memories")
                 .whereEqualTo("createdBy", userId)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null) {
-                        List<Journey> journeyList = task.getResult().toObjects(Journey.class);
+                        List<Memory> journeyList = task.getResult().toObjects(Memory.class);
                         Log.d("JourneyRepository.fetchJourneys", "journeyList: " + new Gson().toJson(journeyList));
                         listener.onSuccess(journeyList);
                     } else {
@@ -37,62 +36,62 @@ public class JourneyRepository {
                 });
     }
 
-    public void saveJourney(Journey journey, OnJourneySaveListener listener) {
-        db.collection("journeys").document(journey.getJourneyID())
+    public void saveMemory(Memory journey, OnMemorySaveListener listener) {
+        db.collection("memories").document(journey.getMemoryId())
                 .set(journey)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d("saveJourney", "Đã save thành công");
+                    Log.d("saveMemory", "Đã save thành công");
                     listener.onSuccess();
                 })
                 .addOnFailureListener(aVoid -> {
-                    Log.d("saveJourney", "Đã save thất bại error=" + aVoid.getMessage());
+                    Log.d("saveMemory", "Đã save thất bại error=" + aVoid.getMessage());
                     listener.onFailure(aVoid);
                 });
     }
 
-    public void removeTag(String journeyId, Tag tagToRemove) {
-        db.collection("journeys")
+    public void removeTag(String journeyId, TagMemory tagToRemove) {
+        db.collection("memories")
                 .document(journeyId)
                 .update("tags", FieldValue.arrayRemove(tagToRemove))
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        Log.d("JourneyRepository.removeTag", "Xóa tag thành công tagId=" + tagToRemove.getTagId());
+                        Log.d("MemoryRepository.removeTag", "Xóa tag thành công tagId=" + tagToRemove.getTagId());
                     } else {
-                        Log.e("JourneyRepository.removeTag", "Xóa tag thất bại", task.getException());
+                        Log.e("MemoryRepository.removeTag", "Xóa tag thất bại", task.getException());
                     }
                 })
                 .addOnFailureListener(e -> {
-                    Log.e("JourneyRepository.removeTag", "Xóa tag thất bại", e);
+                    Log.e("MemoryRepository.removeTag", "Xóa tag thất bại", e);
                 });
     }
 
-    public void updateTagsOrder(String journeyId, List<Tag> updatedTags) {
-        db.collection("journeys")
-                .document(journeyId)
+    public void updateTagsOrder(String memId, List<TagMemory> updatedTags) {
+        db.collection("memories")
+                .document(memId)
                 .update("tags", updatedTags)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        Log.d("JourneyRepository.removeTag", "Xóa tag thành công updatedTags=" + new Gson().toJson(updatedTags));
+                        Log.d("MemoryRepository.removeTag", "Xóa tag thành công updatedTags=" + new Gson().toJson(updatedTags));
                     } else {
-                        Log.e("JourneyRepository.removeTag", "Xóa tag thất bại", task.getException());
+                        Log.e("MemoryRepository.removeTag", "Xóa tag thất bại", task.getException());
                     }
                 })
                 .addOnFailureListener(e -> {
-                    Log.e("JourneyRepository.removeTag", "Xóa tag thất bại", e);
+                    Log.e("MemoryRepository.removeTag", "Xóa tag thất bại", e);
                 });
     }
 
-    public void getTagForJourney(String journeyID, JourneyRepository.OnTagFetchListener onTagFetchListener) {
-        db.collection("journeys")
-                .document(journeyID)
+    public void getTagForMemory(String memId, MemoryRepository.OnTagMemFetchListener onTagFetchListener) {
+        db.collection("memories")
+                .document(memId)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null) {
-                        List<Tag> tags = new ArrayList<>();
+                        List<TagMemory> tags = new ArrayList<>();
                         List<Map<String, Object>> tagMaps = (List<Map<String, Object>>) task.getResult().get("tags");
                         if (tagMaps != null) {
                             for (Map<String, Object> tagMap : tagMaps) {
-                                Tag tag = new Gson().fromJson(new Gson().toJson(tagMap), Tag.class);
+                                TagMemory tag = new Gson().fromJson(new Gson().toJson(tagMap), TagMemory.class);
                                 tags.add(tag);
                             }
                         }
@@ -107,19 +106,18 @@ public class JourneyRepository {
                 });
     }
 
-    public interface OnJourneyFetchListener {
-        void onSuccess(List<Journey> journeys);
+    public interface OnMemoryFetchListener {
+        void onSuccess(List<Memory> memories);
         void onFailure(Exception e);
     }
 
-    public interface OnJourneySaveListener {
+    public interface OnMemorySaveListener {
         void onSuccess();
         void onFailure(Exception e);
     }
 
-    public interface OnTagFetchListener {
-        void onSuccess(List<Tag> tags);
+    public interface OnTagMemFetchListener {
+        void onSuccess(List<TagMemory> tags);
         void onFailure(Exception e);
     }
 }
-

@@ -8,19 +8,19 @@ public class TagMemory {
     private String tagName;
     private double latitude;
     private double longitude;
-    private boolean isCheck;
+    private boolean check;
     private int order;
     private String image;
 
     public TagMemory() {
     }
 
-    public TagMemory(String tagId, String tagName, double latitude, double longitude, boolean isCheck, int order, String image) {
+    public TagMemory(String tagId, String tagName, double latitude, double longitude, boolean check, int order, String image) {
         this.tagId = tagId;
         this.tagName = tagName;
         this.latitude = latitude;
         this.longitude = longitude;
-        this.isCheck = isCheck;
+        this.check = check;
         this.order = order;
         this.image = image;
     }
@@ -58,11 +58,11 @@ public class TagMemory {
     }
 
     public boolean isCheck() {
-        return isCheck;
+        return check;
     }
 
     public void setCheck(boolean check) {
-        isCheck = check;
+        this.check = check;
     }
 
     public int getOrder() {
@@ -79,5 +79,9 @@ public class TagMemory {
 
     public void setImage(String image) {
         this.image = image;
+    }
+
+    public static TagMemory tagToTagMemory(Tag tag) {
+        return new TagMemory(tag.getTagId(), tag.getTagName(), tag.getLatitude(), tag.getLongitude(), false, tag.getOrder(), "");
     }
 }

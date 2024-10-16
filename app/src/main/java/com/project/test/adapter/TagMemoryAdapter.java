@@ -1,5 +1,6 @@
 package com.project.test.adapter;
 
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,8 +12,9 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.project.test.R;
-import com.project.test.model.Tag;
+import com.project.test.fragment.MemoriesJourneyFragment;
 import com.project.test.model.TagMemory;
 
 import java.util.List;
@@ -21,15 +23,36 @@ public class TagMemoryAdapter extends RecyclerView.Adapter<TagMemoryAdapter.TagM
 
     private List<TagMemory> tagMems;
 
+    private Context context;
+
     private TagMemoryAdapter.OnTagClickListener listener;
+
+    private TagMemoryAdapter.OnClickButton onClickButton;
+
+    private TagMemoryAdapter.ClickCheckBox clickCheckBox;
+
 
     public interface OnTagClickListener {
         void onTagClick(TagMemory tag);
     }
 
-    public void setTagMems(List<TagMemory> tagMems, TagMemoryAdapter.OnTagClickListener listener) {
+    public interface OnClickButton {
+        void onClickButton(int position);
+    }
+
+    public interface ClickCheckBox {
+        void onClickCheckBox(boolean check, int position);
+    }
+
+    public TagMemoryAdapter() {
+    }
+
+    public void setTagMems(List<TagMemory> tagMems, TagMemoryAdapter.OnTagClickListener listener, TagMemoryAdapter.OnClickButton onClickButton, TagMemoryAdapter.ClickCheckBox onClickCheckBox,  Context context) {
         this.tagMems = tagMems;
         this.listener = listener;
+        this.onClickButton = onClickButton;
+        this.clickCheckBox = onClickCheckBox;
+        this.context = context;
         notifyDataSetChanged();
     }
 
@@ -40,6 +63,10 @@ public class TagMemoryAdapter extends RecyclerView.Adapter<TagMemoryAdapter.TagM
 
     public void setListener(TagMemoryAdapter.OnTagClickListener listener) {
         this.listener = listener;
+    }
+
+    public List<TagMemory> getTagMems() {
+        return tagMems;
     }
 
     @NonNull
@@ -54,7 +81,7 @@ public class TagMemoryAdapter extends RecyclerView.Adapter<TagMemoryAdapter.TagM
         TagMemory tag = tagMems.get(position);
         if (tag == null) return;
         holder.bind(tag);
-        holder.itemView.setOnClickListener(v -> listener.onTagClick(tag));
+//        holder.itemView.setOnClickListener(v -> listener.onTagClick(tag));
     }
 
     public TagMemory getTagAtPosition(int position) {
@@ -85,12 +112,20 @@ public class TagMemoryAdapter extends RecyclerView.Adapter<TagMemoryAdapter.TagM
 
         public void bind(TagMemory tag) {
             tagName.setText(tag.getTagName());
-            button.setOnClickListener(
-                view -> {
-
-                }
-            );
-            itemView.setOnClickListener(v -> listener.onTagClick(tag)); // Sử dụng listener
+            if (tag.getImage() != null) {
+                Glide.with(context)
+                        .load(tag.getImage())
+                        .into(tagImage);
+            }
+            checkBox.setChecked(tag.isCheck());
+            button.setOnClickListener(v -> {
+                // Gọi phương thức openImageChooser để chọn ảnh
+                onClickButton.onClickButton(getAdapterPosition());
+            });
+            checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                clickCheckBox.onClickCheckBox(isChecked, getAdapterPosition());
+            });
+//            itemView.setOnClickListener(v -> listener.onTagClick(tag)); // Sử dụng listener
         }
 
         public void moveTag(int fromPosition, int toPosition) {

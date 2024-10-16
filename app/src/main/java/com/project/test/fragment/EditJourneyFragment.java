@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
@@ -38,9 +39,11 @@ import com.project.test.adapter.CustomInfoWindowAdapter;
 import com.project.test.adapter.TagAdapter;
 import com.project.test.entity.CustomMarker;
 import com.project.test.model.Journey;
+import com.project.test.model.Memory;
 import com.project.test.model.Tag;
 import com.project.test.repository.JourneyRepository;
 import com.project.test.databinding.FragmentEditJourneyBinding;
+import com.project.test.repository.MemoryRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,17 +60,38 @@ public class EditJourneyFragment extends Fragment implements OnMapReadyCallback 
     private GoogleMap googleMap;
     private String journeyID;
     private JourneyRepository journeyRepo = new JourneyRepository();
+    private Button saveMemory;
+    private Journey currentJourney;
+    private MemoryRepository memRepo = new MemoryRepository();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_edit_journey, container, false);
 
+        saveMemory = view.findViewById(R.id.buttonSave);
         // Lấy journeyID từ arguments
         if (getArguments() != null) {
             journeyID = getArguments().getString("journeyID");
         }
 
+        saveMemory.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                currentJourney.setTags(tags);
+                Memory memory = Memory.journeyToMemory(currentJourney);
+                memRepo.saveMemory(memory, new MemoryRepository.OnMemorySaveListener() {
+                    @Override
+                    public void onSuccess() {
+                        Toast.makeText(getContext(), "Memory saved successfully", Toast.LENGTH_SHORT).show();
+                    }
 
+                    @Override
+                    public void onFailure(Exception e) {
+                        Toast.makeText(getContext(), "Error saving memory: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        });
         // Khởi tạo danh sách tag và adapter
         tagAdapter = new TagAdapter(tags, this::onTagClick);
 
@@ -161,6 +185,7 @@ public class EditJourneyFragment extends Fragment implements OnMapReadyCallback 
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 Journey selectedJourney = journeys.get(position);
+                currentJourney = selectedJourney;
                 journeyID = selectedJourney.getJourneyID();
                 fetchTagsForJourney(selectedJourney.getJourneyID());
             }
