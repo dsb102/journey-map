@@ -6,6 +6,7 @@
     android:layout_height="wrap_content"
     android:background="@drawable/bg_white_corner_border_black"
     android:orientation="vertical"
+    android:layout_gravity="center"
     android:layout_margin="16dp"
     android:padding="16dp">
 
@@ -26,7 +27,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:hint="Enter The Tag Name"
-        android:textColor="@color/white"
+        android:textColor="@color/black"
         android:background="@drawable/bg_white_corner_border_black"
         android:padding="12dp" />
 
@@ -36,7 +37,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:hint="Enter The Note"
-        android:textColor="@color/white"
+        android:textColor="@color/black"
         android:background="@drawable/bg_white_corner_border_black"
         android:padding="12dp" />
 
@@ -46,7 +47,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:hint="Enter The Color Code (#FF0000)"
-        android:textColor="@color/white"
+        android:textColor="@color/black"
         android:background="@drawable/bg_white_corner_border_black"
         android:padding="12dp" />
 

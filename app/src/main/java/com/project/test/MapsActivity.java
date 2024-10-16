@@ -52,12 +52,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private static final String HARD_CODED_USER_ID = "dungsobin103";
     private GoogleMap mMap;
-    private List<CustomMarker> markers = new ArrayList<>();
+    private final List<CustomMarker> markers = new ArrayList<>();
     private static final int PICK_IMAGE_REQUEST = 1; // Request code for picking an image
-    private Marker currentMarker;
-    private List<LatLng> markerPositions = new ArrayList<>();
-    private UserRepository userRepo = new UserRepository();
-    private TagRepository tagRepo = new TagRepository();
+    private LatLng currentLatLng;
+    private final List<LatLng> markerPositions = new ArrayList<>();
+    private final UserRepository userRepo = new UserRepository();
+    private final TagRepository tagRepo = new TagRepository();
+    private boolean saveCurrentMarker = false;
+    private final List<MarkerOptions> makerOptions = new ArrayList<>();
 
     @SuppressLint("NonConstantResourceId")
     @Override
@@ -79,8 +81,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View v) {
 //                showAddLocationDialog(); // Show dialog to add location
-                LatLng centerOfMap = mMap.getCameraPosition().target;
-                showAddTagDialog(centerOfMap);
+                if (currentLatLng != null) {
+                    showAddTagDialog(currentLatLng);
+                } else {
+                    Toast.makeText(MapsActivity.this, "Click on the map to add a location", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -96,45 +101,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     // Show dialog to add location
-    private void showAddLocationDialog() {
-        Dialog dialog = new Dialog(this);
-        dialog.setContentView(R.layout.dialog_add_location);
-        dialog.setCancelable(true);
 
-        // Get references to the dialog's views
-        EditText editTextLocationName = dialog.findViewById(R.id.editTextLocationName);
-        EditText editTextLocationInfo = dialog.findViewById(R.id.editTextLocationInfo);
-        Button buttonAddLocation = dialog.findViewById(R.id.buttonAddLocation);
-
-        buttonAddLocation.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String locationName = editTextLocationName.getText().toString();
-                String locationInfo = editTextLocationInfo.getText().toString();
-                addMarkerWithInfo(locationName, locationInfo);
-                dialog.dismiss();
-            }
-        });
-
-        dialog.show();
-    }
-
-    private void addMarkerWithInfo(String locationName, String locationInfo) {
-        if (mMap != null) {
-            LatLng centerOfMap = mMap.getCameraPosition().target;
-
-            // Create and store the custom marker
-            CustomMarker customMarker = new CustomMarker(centerOfMap, locationName, locationInfo);
-            markers.add(customMarker);
-
-            // Add marker to the map
-            mMap.addMarker(new MarkerOptions().position(centerOfMap).title(locationName));
-            mMap.animateCamera(CameraUpdateFactory.newLatLng(centerOfMap));
-        }
-    }
 
     // Navigation item selected listener function
-    private BottomNavigationView.OnNavigationItemSelectedListener navListener =
+    private final BottomNavigationView.OnNavigationItemSelectedListener navListener =
             new BottomNavigationView.OnNavigationItemSelectedListener() {
                 @Override
                 public boolean onNavigationItemSelected(@NonNull MenuItem item) {
@@ -164,8 +134,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-
-
         mMap = googleMap;
 
         // Set the custom info window adapter
@@ -184,10 +152,26 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(@NonNull LatLng latLng) {
-                showAddTagDialog(latLng);
+//                showAddTagDialog(latLng);
+                if (!saveCurrentMarker) {
+                    makerOptions.remove(makerOptions.size() - 1);
+                    updateMarkers();
+                }
+                MarkerOptions marker =  new MarkerOptions().position(latLng).title("Click here").icon(BitmapDescriptorFactory.defaultMarker());
+                makerOptions.add(marker);
+                mMap.addMarker(marker);
+                currentLatLng = latLng;
+                saveCurrentMarker = false;
 //                drawLine(latLng);
             }
         });
+    }
+
+    private void updateMarkers() {
+        mMap.clear();
+        for (MarkerOptions markerOption : makerOptions) {
+            mMap.addMarker(markerOption);
+        }
     }
 
     private void showAddTagDialog(LatLng markerPosition) {
@@ -197,30 +181,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Inflate the custom layout for the dialog
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_tag, null);
 
-        // InitiuserRepo.getLocationUsers(
-        //        "dungsobin103",
-        //            userLocations -> {
-        //                Log.d("MapsActivity", "User locations: " + new Gson().toJson(userLocations));
-        //                for (int i = 0; i < userLocations.size(); i++) {
-        //                    CustomMarker customMarker = new CustomMarker(
-        //                        new LatLng(userLocations.get(i).getLatitude(), userLocations.get(i).getLongitude()),
-        //                        userLocations.get(i).getName(),
-        //                        userLocations.get(i).getName() + " is here"
-        //                    );
-        //                    markers.add(customMarker);
-        //                    mMap.addMarker(new MarkerOptions().position(customMarker.getPosition()).title(customMarker.getTitle()));
-        //
-        //                }
-        //
-        //                //TODO: Move camera to show all markers
-        ////                LatLngBounds.Builder builder = new LatLngBounds.Builder();
-        ////                for (CustomMarker mark : markers) {
-        ////                    builder.include(mark.getPosition());
-        ////                }
-        ////                LatLngBounds bounds = builder.build();
-        ////                mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 10));
-        //            }
-        //        ); // todo fix namealize EditText and Button views from the layout
         EditText tagNameInput = dialogView.findViewById(R.id.editTextTagName);
         EditText tagNotesInput = dialogView.findViewById(R.id.editTextNotes);
         EditText tagColorInput = dialogView.findViewById(R.id.editTextColor);
@@ -249,10 +209,18 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     @Override
                     public void onSuccess() {
                         float[] hsv = new float[3];
-                        String tagCol = tagColor != null ? tagColor: "#FF0000";
-                        Color.colorToHSV(Color.parseColor(tagCol), hsv);
-                        BitmapDescriptor markerColor = BitmapDescriptorFactory.defaultMarker(hsv[0]);
+                        String tagCol = tagColor != null ? tagColor : "#FF0000";
+                        BitmapDescriptor markerColor;
+                        try {
+                            Color.colorToHSV(Color.parseColor(tagCol), hsv);
+                            markerColor = BitmapDescriptorFactory.defaultMarker(hsv[0]);
+                        } catch (Exception e) {
+                            Color.colorToHSV(Color.parseColor("#FF0000"), hsv);
+                            markerColor = BitmapDescriptorFactory.defaultMarker(hsv[0]);
+                        }
                         mMap.addMarker(new MarkerOptions().position(markerPosition).title(tagName).icon(markerColor));
+                        saveCurrentMarker = true;
+                        currentLatLng = null;
                         Toast.makeText(getApplicationContext(), "Tag saved", Toast.LENGTH_SHORT).show();
                     }
 
@@ -294,28 +262,35 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         GeoPoint position = (GeoPoint) userLocations.get(i).get("position");
                         if (position == null) continue;
                         float[] hsv = new float[3];
-                        String tagColor = userLocations.get(i).get("tagColor") != null ? userLocations.get(i).get("tagColor").toString(): "#FF0000";
-
-                        Color.colorToHSV(Color.parseColor(tagColor), hsv);
-                        BitmapDescriptor markerColor = BitmapDescriptorFactory.defaultMarker(hsv[0]);
+                        String tagColor = userLocations.get(i).get("tagColor") != null ? userLocations.get(i).get("tagColor").toString() : "#FF0000";
+                        BitmapDescriptor markerColor;
+                        try {
+                            Color.colorToHSV(Color.parseColor(tagColor), hsv);
+                            markerColor = BitmapDescriptorFactory.defaultMarker(hsv[0]);
+                        } catch (Exception e) {
+                            Color.colorToHSV(Color.parseColor("#FF0000"), hsv);
+                            markerColor = BitmapDescriptorFactory.defaultMarker(hsv[0]);
+                        }
                         CustomMarker customMarker = new CustomMarker(
                                 new LatLng(position.getLatitude(), position.getLongitude()),
                                 userLocations.get(i).get("tagName") != null ? userLocations.get(i).get("tagName").toString(): "No name",
                                 userLocations.get(i).get("tagNotes") + " is here"
                         );
                         markers.add(customMarker);
-                        mMap.addMarker(new MarkerOptions().position(customMarker.getPosition()).title(customMarker.getTitle()).icon(markerColor));
+                        MarkerOptions makerOption = new MarkerOptions().position(customMarker.getPosition()).title(customMarker.getTitle()).icon(markerColor);
+                        makerOptions.add(makerOption);
+                        mMap.addMarker(makerOption);
                     }
 
                     //TODO: Move camera to show all markers
-                if (!markers.isEmpty()) {
-                    LatLngBounds.Builder builder = new LatLngBounds.Builder();
-                    for (CustomMarker mark : markers) {
-                        builder.include(mark.getPosition());
-                    }
-                    LatLngBounds bounds = builder.build();
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 10));
-                }
+//                if (!markers.isEmpty()) {
+//                    LatLngBounds.Builder builder = new LatLngBounds.Builder();
+//                    for (CustomMarker mark : markers) {
+//                        builder.include(mark.getPosition());
+//                    }
+//                    LatLngBounds bounds = builder.build();
+//                    mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 10));
+//                }
                 }
         ); // todo fix name
     }
@@ -335,8 +310,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         userLocations.get(i).getName(),
                         userLocations.get(i).getName() + " is here"
                     );
+                    MarkerOptions markerOptions = new MarkerOptions().position(customMarker.getPosition()).title(customMarker.getTitle());
+                    makerOptions.add(markerOptions);
                     markers.add(customMarker);
-                    mMap.addMarker(new MarkerOptions().position(customMarker.getPosition()).title(customMarker.getTitle()));
+                    mMap.addMarker(markerOptions);
                 }
 
                 //TODO: Move camera to show all markers
@@ -348,28 +325,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 //                mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 10));
             }
         ); // todo fix name
-    }
-
-    private void drawLine(@NonNull LatLng latLng) {
-        CustomMarker customMarker = new CustomMarker(latLng, "Marker at clicked position", "Some info here");
-        markers.add(customMarker);
-        markerPositions.add(latLng);  // Lưu vị trí marker
-
-        // Thêm marker vào bản đồ
-        currentMarker = mMap.addMarker(new MarkerOptions().position(latLng).title(customMarker.getTitle()));
-
-        // Di chuyển camera tới vị trí marker mới
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 10));
-
-        // Nếu có nhiều hơn 1 marker, vẽ đường nối các marker
-        if (markerPositions.size() > 1) {
-            PolylineOptions polylineOptions = new PolylineOptions()
-                    .addAll(markerPositions)  // Thêm tất cả các vị trí marker vào polyline
-                    .clickable(true);         // Để đường có thể nhấn được (nếu muốn)
-
-            // Thêm polyline vào bản đồ
-            mMap.addPolyline(polylineOptions);
-        }
     }
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
